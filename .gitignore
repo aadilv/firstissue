@@ -1,0 +1,20 @@
+# R env
+.Renviron
+*.Renviron
+
+# renv internals
+renv/python/
+renv/sandbox/
+
+# R clutter
+.Rhistory
+.RData
+.Ruserdata
+*.Rproj.user/
+
+# scratch work
+scratch/
+
+# OS
+.DS_Store
+Thumbs.db
