@@ -3,6 +3,7 @@
 library(shiny)
 library(bslib)
 library(shinyWidgets)
+library(gh)
 
 SKILL_CHOICES <- c(
   "docs", "viz", "tidyverse", "shiny",
@@ -29,19 +30,29 @@ ui <- page_fluid(
 
 server <- function(input, output, session) {
 
-  output$results_ui <- renderUI({
-    p("Select skills above and click Find Issues.")
-  })
+  issues <- reactiveVal(NULL)
 
   observeEvent(input$find_btn, {
     req(input$skills)
-    # placeholder
-    message("Skills selected: ", paste(input$skills, collapse = ", "))
-    showNotification(
-      paste0("Selected: ", paste(input$skills, collapse = ", ")),
-      type     = "message",
-      duration = 3
-    )
+
+    withProgress(message = "Fetching issues from GitHub...", {
+      dat <- fetch_for_skills(input$skills)
+      issues(dat)
+    })
+  })
+
+  output$results_ui <- renderUI({
+    df <- issues()
+    if (is.null(df)) return(NULL)
+    if (nrow(df) == 0) return(p("No issues found. Try different skills."))
+    # rough table for now
+    tableOutput("issues_table")
+  })
+
+  output$issues_table <- renderTable({
+    df <- issues()
+    if (is.null(df) || nrow(df) == 0) return(NULL)
+    df[, c("repo", "number", "title", "comments")]
   })
 }
 
