@@ -23,14 +23,30 @@ fetch_repo_issues <- function(owner, repo, n = 10) {
 
     if (length(raw) == 0) return(NULL)
 
-    # TODO: this also returns PRs
-    do.call(rbind, lapply(raw, function(x) {
+    issues_only <- Filter(function(x) is.null(x$pull_request), raw)
+    if (length(issues_only) == 0) return(NULL)
+
+    do.call(rbind, lapply(issues_only, function(x) {
+      labels <- if (length(x$labels) > 0) {
+        paste(sapply(x$labels, `[[`, "name"), collapse = ", ")
+      } else {
+        ""
+      }
+
+      body_preview <- if (!is.null(x$body) && nchar(x$body) > 0) {
+        substr(x$body, 1, 200)
+      } else {
+        ""
+      }
+
       data.frame(
         repo     = paste0(owner, "/", repo),
         number   = x$number,
         title    = x$title,
         url      = x$html_url,
+        labels   = labels,
         comments = x$comments,
+        body     = body_preview,
         stringsAsFactors = FALSE
       )
     }))
@@ -40,6 +56,7 @@ fetch_repo_issues <- function(owner, repo, n = 10) {
   })
 }
 
+# TODO: body column sometimes comes back as a list instead of character
 fetch_for_skills <- function(skills) {
   repos <- unique(unlist(R_REPOS[skills], use.names = FALSE))
 

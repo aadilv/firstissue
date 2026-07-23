@@ -44,15 +44,36 @@ server <- function(input, output, session) {
   output$results_ui <- renderUI({
     df <- issues()
     if (is.null(df)) return(NULL)
-    if (nrow(df) == 0) return(p("No issues found. Try different skills."))
-    # rough table for now
-    tableOutput("issues_table")
-  })
 
-  output$issues_table <- renderTable({
-    df <- issues()
-    if (is.null(df) || nrow(df) == 0) return(NULL)
-    df[, c("repo", "number", "title", "comments")]
+    if (nrow(df) == 0)
+      return(p("No issues found. Try different skills."))
+
+    p_count <- p(
+      paste(nrow(df), "issues found"),
+      class = "text-muted"
+    )
+
+    cards <- lapply(seq_len(nrow(df)), function(i) {
+      row <- df[i, ]
+
+      card(
+        card_body(
+          tags$small(row$repo, class = "text-muted"),
+          p(
+            tags$a(row$title, href = row$url, target = "_blank"),
+            class = "mb-1 mt-1"
+          ),
+          if (nchar(row$body) > 0)
+            tags$small(row$body, class = "text-muted d-block mb-2"),
+          tags$small(
+            if (nchar(row$labels) > 0) paste0("labels: ", row$labels, " · "),
+            paste(row$comments, "comments")
+          )
+        )
+      )
+    })
+
+    tagList(p_count, cards)
   })
 }
 
