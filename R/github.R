@@ -47,6 +47,8 @@ fetch_repo_issues <- function(owner, repo, n = 10) {
         labels   = labels,
         comments = x$comments,
         body     = body_preview,
+        body_length = if (!is.null(x$body)) nchar(x$body) else 0,
+        assigned    = !is.null(x$assignee),                     
         stringsAsFactors = FALSE
       )
     }))

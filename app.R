@@ -5,6 +5,9 @@ library(bslib)
 library(shinyWidgets)
 library(gh)
 
+source("R/github.R")
+source("R/heuristic.R")
+
 SKILL_CHOICES <- c(
   "docs", "viz", "tidyverse", "shiny",
   "modelling", "testing", "spatial", "bioinformatics"
@@ -35,8 +38,9 @@ server <- function(input, output, session) {
   observeEvent(input$find_btn, {
     req(input$skills)
 
-    withProgress(message = "Fetching issues from GitHub...", {
+    withProgress(message = "Fetching issues...", {
       dat <- fetch_for_skills(input$skills)
+      dat <- score_issues(dat)  # sort by heuristic score
       issues(dat)
     })
   })
@@ -67,7 +71,8 @@ server <- function(input, output, session) {
             tags$small(row$body, class = "text-muted d-block mb-2"),
           tags$small(
             if (nchar(row$labels) > 0) paste0("labels: ", row$labels, " · "),
-            paste(row$comments, "comments")
+            paste(row$comments, "comments"),
+            paste0(" · score: ", row$score, "/5")  
           )
         )
       )
