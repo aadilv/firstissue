@@ -1,0 +1,4 @@
+# Copy this file to .Renviron and fill in your own values
+
+GITHUB_PAT=
+GROQ_API_KEY=
