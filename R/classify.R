@@ -29,3 +29,34 @@ classify_issue <- function(title, body, labels) {
 
   jsonlite::fromJSON(trimws(text))
 }
+
+# only classify issues that cleared heuristic bar (to save quota)
+classify_issues <- function(df) {
+  if (nrow(df) == 0) return(df)
+
+  df$llm_score <- NA_integer_
+  df$reason    <- ""
+
+  to_classify <- which(df$score >= 2)
+
+  for (i in to_classify) {
+    row <- df[i, ]
+
+    result <- tryCatch({
+      classify_issue(row$title, row$body, row$labels)
+    }, error = function(e) {
+      message("classify failed: ", row$repo, " #", row$number, " — ", conditionMessage(e))
+      NULL
+    })
+
+    if (!is.null(result)) {
+      df$llm_score[i] <- result$score
+      df$reason[i]    <- result$reason
+    }
+
+    Sys.sleep(0.5)
+  }
+
+  df$display_score <- ifelse(!is.na(df$llm_score), df$llm_score, df$score)
+  df[order(df$display_score, decreasing = TRUE), ]
+}
