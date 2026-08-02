@@ -33,22 +33,19 @@ fetch_repo_issues <- function(owner, repo, n = 10) {
         ""
       }
 
-      body_preview <- if (!is.null(x$body) && nchar(x$body) > 0) {
-        substr(x$body, 1, 200)
-      } else {
-        ""
-      }
+      body_raw  <- x$body
+      body_text <- if (is.character(body_raw) && nchar(body_raw) > 0) body_raw else ""
 
       data.frame(
-        repo     = paste0(owner, "/", repo),
-        number   = x$number,
-        title    = x$title,
-        url      = x$html_url,
-        labels   = labels,
-        comments = x$comments,
-        body     = body_preview,
-        body_length = if (!is.null(x$body)) nchar(x$body) else 0,
-        assigned    = !is.null(x$assignee),                     
+        repo        = paste0(owner, "/", repo),
+        number      = x$number,
+        title       = x$title,
+        url         = x$html_url,
+        labels      = labels,
+        comments    = x$comments,
+        body        = substr(body_text, 1, 200),
+        body_length = nchar(body_text),
+        assigned    = !is.null(x$assignee),
         stringsAsFactors = FALSE
       )
     }))

@@ -31,13 +31,16 @@ classify_issue <- function(title, body, labels) {
 }
 
 # only classify issues that cleared heuristic bar (to save quota)
-classify_issues <- function(df) {
+classify_issues <- function(df, max_classify = 10) {
   if (nrow(df) == 0) return(df)
 
   df$llm_score <- NA_integer_
   df$reason    <- ""
 
-  to_classify <- which(df$score >= 2)
+  # cap at top N by heuristic score
+  by_score    <- order(df$score, decreasing = TRUE)
+  candidates  <- by_score[df$score[by_score] >= 2]
+  to_classify <- head(candidates, max_classify)
 
   for (i in to_classify) {
     row <- df[i, ]
