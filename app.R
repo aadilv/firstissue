@@ -41,14 +41,12 @@ server <- function(input, output, session) {
   observeEvent(input$find_btn, {
     req(input$skills)
 
-    withProgress(message = "Fetching issues...", value = 0, {
+    withProgress(message = "Fetching and scoring issues...", value = 0.1, {
       dat <- fetch_for_skills(input$skills)
-
-      incProgress(0.4, message = "Scoring...")
       dat <- score_issues(dat)
 
-      incProgress(0.3, message = "Classifying") 
-      dat <- classify_issues(dat)                              
+      setProgress(value = 0.5, message = "Classifying...")
+      dat <- classify_issues(dat)
 
       issues(dat)
     })
@@ -76,10 +74,10 @@ server <- function(input, output, session) {
             tags$a(row$title, href = row$url, target = "_blank"),
             class = "mb-1 mt-1"
           ),
+          if (nchar(row$body) > 0)
+            tags$small(row$body, class = "text-muted d-block mb-1"),
           if (nchar(row$reason) > 0)
-            tags$small(row$reason, class = "text-muted d-block mb-2"),
-          if (nchar(row$body) > 0 && nchar(row$reason) == 0)
-            tags$small(row$body, class = "text-muted d-block mb-2"),
+            tags$small(tags$em(row$reason), class = "text-muted d-block mb-2"),
           tags$small(
             if (nchar(row$labels) > 0) paste0("labels: ", row$labels, " · "),
             paste(row$comments, "comments"),

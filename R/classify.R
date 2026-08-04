@@ -1,10 +1,17 @@
 classify_issue <- function(title, body, labels) {
   prompt <- paste0(
-    "Rate this GitHub issue for beginner friendliness. Respond with JSON only.\n\n",
+    "Evaluate this GitHub R package issue for a first-time open source contributor.\n\n",
+    "Score 1-5 using this rubric:\n",
+    "5 = Ideal: typo, simple doc fix, or clearly scoped with explicit maintainer guidance\n",
+    "4 = Good: well-defined task, only basic R knowledge required\n",
+    "3 = Moderate: needs some package familiarity but not internals\n",
+    "2 = Hard: requires domain expertise or knowledge of package internals\n",
+    "1 = Not suitable: complex bug, research-level, or deep expertise required\n\n",
     "Title: ", title, "\n",
     "Labels: ", if (nchar(labels) > 0) labels else "none", "\n",
     "Body: ", substr(body, 1, 400), "\n\n",
-    '{"score": <1-5>, "reason": "<one sentence max>"}'
+    "Respond with JSON only. Reason must cite something specific from the issue above.\n",
+    '{"score": <1-5>, "reason": "<one sentence referencing the issue>"}'
   )
 
   resp <- httr2::request("https://api.groq.com/openai/v1/chat/completions") |>
