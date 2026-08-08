@@ -3,6 +3,7 @@
 library(shiny)
 library(bslib)
 library(shinyWidgets)
+library(shinyjs)
 library(gh)
 library(httr2)
 library(jsonlite)
@@ -17,6 +18,7 @@ SKILL_CHOICES <- c(
 )
 
 ui <- page_fluid(
+  useShinyjs(),
   h2("Find your first R issue."),
   p("Select what you know and we'll find matching open issues."),
   br(),
@@ -41,6 +43,9 @@ server <- function(input, output, session) {
   observeEvent(input$find_btn, {
     req(input$skills)
 
+    shinyjs::disable("find_btn")               
+    on.exit(shinyjs::enable("find_btn"))       
+
     withProgress(message = "Fetching and scoring issues...", value = 0.1, {
       dat <- fetch_for_skills(input$skills)
       dat <- score_issues(dat)
@@ -58,6 +63,8 @@ server <- function(input, output, session) {
 
     if (nrow(df) == 0)
       return(p("No issues found. Try different skills."))
+
+    df <- df[df$display_score > 1, ]
 
     p_count <- p(
       paste(nrow(df), "issues found"),

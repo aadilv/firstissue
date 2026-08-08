@@ -1,6 +1,20 @@
-classify_issue <- function(title, body, labels) {
+classify_issue <- function(title, body, labels, repo_description = "", repo_topics = "") {
+
+  # compact repo context
+  repo_context <- if (nchar(repo_description) > 0 || nchar(repo_topics) > 0) {
+    paste0(
+      "Package: ",
+      if (nchar(repo_description) > 0) repo_description else "",
+      if (nchar(repo_topics) > 0) paste0(" [", repo_topics, "]") else "",
+      "\n"
+    )
+  } else {
+    ""
+  }
+
   prompt <- paste0(
     "Evaluate this GitHub R package issue for a first-time open source contributor.\n\n",
+    repo_context,
     "Score 1-5 using this rubric:\n",
     "5 = Ideal: typo, simple doc fix, or clearly scoped with explicit maintainer guidance\n",
     "4 = Good: well-defined task, only basic R knowledge required\n",
@@ -30,11 +44,14 @@ classify_issue <- function(title, body, labels) {
 
   raw  <- httr2::resp_body_json(resp)
   text <- raw$choices[[1]]$message$content
+  text   <- gsub("```json|```", "", text, perl = TRUE)
+  result <- jsonlite::fromJSON(trimws(text))
 
-  # model sometimes wraps response in fences despite instructions
-  text <- gsub("```json|```", "", text, perl = TRUE)
+  score <- suppressWarnings(as.integer(round(result$score)))
+  if (is.na(score) || score < 1 || score > 5) score <- NA_integer_
+  result$score <- score
 
-  jsonlite::fromJSON(trimws(text))
+  result
 }
 
 # only classify issues that cleared heuristic bar (to save quota)
@@ -52,8 +69,16 @@ classify_issues <- function(df, max_classify = 10) {
   for (i in to_classify) {
     row <- df[i, ]
 
+    if (nchar(row$body) == 0) next
+
     result <- tryCatch({
-      classify_issue(row$title, row$body, row$labels)
+      classify_issue(
+        row$title,
+        row$body,
+        row$labels,
+        row$repo_description,
+        row$repo_topics
+      )
     }, error = function(e) {
       message("classify failed: ", row$repo, " #", row$number, " — ", conditionMessage(e))
       NULL

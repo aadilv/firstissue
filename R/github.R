@@ -1,4 +1,5 @@
-# Hardcoded repo list per skill (for now)
+# R/github.R
+
 R_REPOS <- list(
   docs           = c("tidyverse/dplyr", "tidyverse/ggplot2", "r-lib/roxygen2"),
   viz            = c("tidyverse/ggplot2", "wilkelab/ggridges", "thomasp85/patchwork"),
@@ -10,14 +11,37 @@ R_REPOS <- list(
   bioinformatics = c("Bioconductor/BiocParallel", "Bioconductor/GenomicRanges")
 )
 
-fetch_repo_issues <- function(owner, repo, n = 10) {
+# fetch repo description and topics
+fetch_repo_meta <- function(owner, repo) {
   tryCatch({
+    info <- gh(
+      "GET /repos/{owner}/{repo}",
+      owner  = owner,
+      repo   = repo,
+      .token = Sys.getenv("GITHUB_PAT")
+    )
+
+    list(
+      description = if (!is.null(info$description)) info$description else "",
+      topics      = if (length(info$topics) > 0) paste(info$topics, collapse = ", ") else ""
+    )
+  }, error = function(e) {
+    message("Failed fetching meta for ", owner, "/", repo, ": ", conditionMessage(e))
+    list(description = "", topics = "")
+  })
+}
+
+fetch_repo_issues <- function(owner, repo, n = 10, since_days = 365) {
+  tryCatch({
+    since <- paste0(Sys.Date() - since_days, "T00:00:00Z")
+
     raw <- gh(
       "GET /repos/{owner}/{repo}/issues",
       owner    = owner,
       repo     = repo,
       state    = "open",
       per_page = n,
+      since    = since,
       .token   = Sys.getenv("GITHUB_PAT")
     )
 
@@ -60,13 +84,27 @@ fetch_for_skills <- function(skills) {
   repos <- unique(unlist(R_REPOS[skills], use.names = FALSE))
 
   results <- lapply(repos, function(r) {
-    parts <- strsplit(r, "/")[[1]]
-    Sys.sleep(0.3)  # avoid hammering the API
-    fetch_repo_issues(parts[1], parts[2])
+    parts  <- strsplit(r, "/")[[1]]
+    owner  <- parts[1]
+    repo   <- parts[2]
+
+    Sys.sleep(0.3)
+    meta   <- fetch_repo_meta(owner, repo)   
+    issues <- fetch_repo_issues(owner, repo)
+
+    if (is.null(issues)) return(NULL)
+
+    issues$repo_description <- meta$description 
+    issues$repo_topics      <- meta$topics        
+
+    issues
   })
 
   combined <- do.call(rbind, Filter(Negate(is.null), results))
   if (is.null(combined)) return(data.frame())
+
+  combined <- combined[!duplicated(paste(combined$repo, combined$number)), ]
+
   rownames(combined) <- NULL
   combined
 }
