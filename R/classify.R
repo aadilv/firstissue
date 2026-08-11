@@ -1,6 +1,7 @@
-classify_issue <- function(title, body, labels, repo_description = "", repo_topics = "") {
+classify_issue <- function(title, body, labels,
+                           repo_description = "", repo_topics = "",
+                           user_skills = "") {
 
-  # compact repo context
   repo_context <- if (nchar(repo_description) > 0 || nchar(repo_topics) > 0) {
     paste0(
       "Package: ",
@@ -12,9 +13,17 @@ classify_issue <- function(title, body, labels, repo_description = "", repo_topi
     ""
   }
 
+  # lets the model calibrate against what the user actually knows
+  skill_context <- if (nchar(user_skills) > 0) {
+    paste0("The contributor is comfortable with: ", user_skills, "\n")
+  } else {
+    ""
+  }
+
   prompt <- paste0(
     "Evaluate this GitHub R package issue for a first-time open source contributor.\n\n",
     repo_context,
+    skill_context,
     "Score 1-5 using this rubric:\n",
     "5 = Ideal: typo, simple doc fix, or clearly scoped with explicit maintainer guidance\n",
     "4 = Good: well-defined task, only basic R knowledge required\n",
@@ -39,11 +48,15 @@ classify_issue <- function(title, body, labels, repo_description = "", repo_topi
       max_tokens  = 120,
       temperature = 0
     )) |>
-    httr2::req_retry(max_tries = 2) |>
+    httr2::req_retry(
+      max_tries    = 3,
+      is_transient = function(resp) httr2::resp_status(resp) %in% c(429, 503),
+      backoff      = function(i) 30 * i
+    ) |>
     httr2::req_perform()
 
-  raw  <- httr2::resp_body_json(resp)
-  text <- raw$choices[[1]]$message$content
+  raw    <- httr2::resp_body_json(resp)
+  text   <- raw$choices[[1]]$message$content
   text   <- gsub("```json|```", "", text, perl = TRUE)
   result <- jsonlite::fromJSON(trimws(text))
 
@@ -54,14 +67,14 @@ classify_issue <- function(title, body, labels, repo_description = "", repo_topi
   result
 }
 
-# only classify issues that cleared heuristic bar (to save quota)
-classify_issues <- function(df, max_classify = 10) {
+classify_issues <- function(df, max_classify = 10, skills = NULL) {
   if (nrow(df) == 0) return(df)
 
   df$llm_score <- NA_integer_
   df$reason    <- ""
 
-  # cap at top N by heuristic score
+  user_skills <- if (!is.null(skills)) paste(skills, collapse = ", ") else ""
+
   by_score    <- order(df$score, decreasing = TRUE)
   candidates  <- by_score[df$score[by_score] >= 2]
   to_classify <- head(candidates, max_classify)
@@ -77,7 +90,8 @@ classify_issues <- function(df, max_classify = 10) {
         row$body,
         row$labels,
         row$repo_description,
-        row$repo_topics
+        row$repo_topics,
+        user_skills
       )
     }, error = function(e) {
       message("classify failed: ", row$repo, " #", row$number, " — ", conditionMessage(e))

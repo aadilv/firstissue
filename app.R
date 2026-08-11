@@ -51,7 +51,7 @@ server <- function(input, output, session) {
       dat <- score_issues(dat)
 
       setProgress(value = 0.5, message = "Classifying...")
-      dat <- classify_issues(dat)
+      dat <- classify_issues(dat, skills = input$skills)
 
       issues(dat)
     })
