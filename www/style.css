@@ -1,0 +1,29 @@
+.navbar-brand {
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.score-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.dot-filled {
+  background-color: #0d6efd;
+}
+
+.dot-empty {
+  background-color: #dee2e6;
+}
+
+.issue-card {
+  margin-bottom: 0.75rem;
+}
