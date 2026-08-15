@@ -35,13 +35,10 @@ ui <- page_fluid(
   # nav
   tags$nav(
     class = "navbar bg-white border-bottom px-4 mb-4",
-    tags$span(
-      class = "navbar-brand mb-0",
-      tags$span(class = "navbar-brand mb-0", "fiRstissue")
-    ),
+    tags$span(class = "navbar-brand mb-0", "fiRstissue"),
+    tags$span("for R", class = "text-muted small")
   ),
 
-  # main content
   div(
     class = "container",
     style = "max-width: 860px;",
@@ -58,6 +55,32 @@ ui <- page_fluid(
       size     = "sm"
     ),
     br(),
+
+    div(
+      class = "d-flex align-items-center gap-4 mb-3",
+      div(
+        style = "width: 260px;",
+        sliderInput(
+          inputId = "min_score",
+          label   = "Minimum score",
+          min     = 1,
+          max     = 5,
+          value   = 2,
+          step    = 1,
+          ticks   = TRUE,
+          width   = "100%"
+        )
+      ),
+      div(
+        class = "mt-2",
+        checkboxInput(
+          inputId = "labelled_only",
+          label   = "Labelled issues only",
+          value   = FALSE
+        )
+      )
+    ),
+
     actionButton("find_btn", "Find Issues", class = "btn-primary"),
     br(), br(),
     uiOutput("results_ui")
@@ -92,7 +115,14 @@ server <- function(input, output, session) {
     if (nrow(df) == 0)
       return(p("No issues found. Try different skills."))
 
-    df <- df[df$display_score > 1, ]
+    df <- df[df$display_score >= input$min_score, ]
+
+    if (input$labelled_only) {
+      df <- df[nchar(df$labels) > 0, ]
+    }
+
+    if (nrow(df) == 0)
+      return(p("No issues match the current filters.", class = "text-muted"))
 
     p_count <- p(
       paste(nrow(df), "issues found"),
