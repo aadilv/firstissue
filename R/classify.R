@@ -20,21 +20,29 @@ classify_issue <- function(title, body, labels,
     ""
   }
 
+  body_section <- if (nchar(body) > 0) {
+    paste0("Body: ", substr(body, 1, 400), "\n")
+  } else {
+    ""
+  }
+
   prompt <- paste0(
     "Evaluate this GitHub R package issue for a first-time open source contributor.\n\n",
     repo_context,
     skill_context,
     "Score 1-5 using this rubric:\n",
-    "5 = Ideal: typo, simple doc fix, or clearly scoped with explicit maintainer guidance\n",
-    "4 = Good: well-defined task, only basic R knowledge required\n",
-    "3 = Moderate: needs some package familiarity but not internals\n",
-    "2 = Hard: requires domain expertise or knowledge of package internals\n",
-    "1 = Not suitable: complex bug, research-level, or deep expertise required\n\n",
+    "5 = Ideal: typo, simple doc fix, clearly scoped with explicit maintainer guidance, or marked good-first-issue\n",
+    "4 = Good: well-defined task, requires only basic R knowledge, no package internals\n",
+    "3 = Moderate: needs some familiarity with the package but not its internals\n",
+    "2 = Hard: requires domain expertise, package internals, or significant context\n",
+    "1 = Not suitable: complex bug, research-level, or requires deep expertise\n\n",
     "Title: ", title, "\n",
     "Labels: ", if (nchar(labels) > 0) labels else "none", "\n",
-    "Body: ", substr(body, 1, 400), "\n\n",
-    "Respond with JSON only. Reason must cite something specific from the issue above.\n",
-    '{"score": <1-5>, "reason": "<one sentence referencing the issue>"}'
+    body_section,
+    "\nRespond with JSON only. ",
+    "Reason must cite something specific from the title or body above. ",
+    "Do not start the reason with 'The issue'.\n",
+    '{"score": <1-5>, "reason": "<one sentence>"}'
   )
 
   resp <- httr2::request("https://api.groq.com/openai/v1/chat/completions") |>
@@ -67,7 +75,7 @@ classify_issue <- function(title, body, labels,
   result
 }
 
-classify_issues <- function(df, max_classify = 10, skills = NULL) {
+classify_issues <- function(df, max_classify = 10, skills = NULL, progress_cb = NULL) {
   if (nrow(df) == 0) return(df)
 
   df$llm_score <- NA_integer_
@@ -79,10 +87,11 @@ classify_issues <- function(df, max_classify = 10, skills = NULL) {
   candidates  <- by_score[df$score[by_score] >= 2]
   to_classify <- head(candidates, max_classify)
 
-  for (i in to_classify) {
+  for (idx in seq_along(to_classify)) {
+    i   <- to_classify[idx]
     row <- df[i, ]
 
-    if (nchar(row$body) == 0) next
+
 
     result <- tryCatch({
       classify_issue(
@@ -102,6 +111,8 @@ classify_issues <- function(df, max_classify = 10, skills = NULL) {
       df$llm_score[i] <- result$score
       df$reason[i]    <- result$reason
     }
+
+    if (!is.null(progress_cb)) progress_cb(idx, length(to_classify))
 
     Sys.sleep(0.5)
   }

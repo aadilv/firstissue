@@ -1,18 +1,44 @@
+body {
+  background-color: #f8f9fa;
+}
+
 .navbar-brand {
   font-weight: 600;
   font-size: 1rem;
+  letter-spacing: -0.01em;
 }
 
+.issue-card {
+  margin-bottom: 0.65rem;
+}
+
+.issue-card .card {
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: none;
+}
+
+.issue-card .card-body {
+  padding: 1rem 1.1rem;
+}
+
+.issue-card .card:hover {
+  border-color: #ced4da;
+}
+
+/* score dots */
 .score-dots {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
+  gap: 4px;
+  flex-shrink: 0;
 }
 
 .dot {
   display: inline-block;
-  width: 8px;
-  height: 8px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
 }
 
@@ -24,6 +50,29 @@
   background-color: #dee2e6;
 }
 
-.issue-card {
-  margin-bottom: 0.75rem;
+/* issue title link */
+.issue-card a {
+  color: #212529;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.issue-card a:hover {
+  color: #0d6efd;
+}
+
+/* filters row */
+.filter-row {
+  background: #ffffff;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 0.85rem 1rem;
+  margin-bottom: 1rem;
+}
+
+/* empty/no results state */
+.empty-state {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #6c757d;
 }

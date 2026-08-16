@@ -57,7 +57,7 @@ ui <- page_fluid(
     br(),
 
     div(
-      class = "d-flex align-items-center gap-4 mb-3",
+      class = "filter-row d-flex align-items-center gap-4",
       div(
         style = "width: 260px;",
         sliderInput(
@@ -101,8 +101,18 @@ server <- function(input, output, session) {
       dat <- fetch_for_skills(input$skills)
       dat <- score_issues(dat)
 
-      setProgress(value = 0.5, message = "Classifying...")
-      dat <- classify_issues(dat, skills = input$skills)
+      setProgress(value = 0.5, message = "Classifying... (0/?)")
+
+      dat <- classify_issues(
+        dat,
+        skills      = input$skills,
+        progress_cb = function(i, n) {
+          setProgress(
+            value   = 0.5 + 0.45 * (i / n),
+            message = paste0("Classifying... (", i, "/", n, ")")
+          )
+        }
+      )
 
       issues(dat)
     })
@@ -113,7 +123,7 @@ server <- function(input, output, session) {
     if (is.null(df)) return(NULL)
 
     if (nrow(df) == 0)
-      return(p("No issues found. Try different skills."))
+      return(div(class = "empty-state", p("No issues found. Try different skills.")))
 
     df <- df[df$display_score >= input$min_score, ]
 
@@ -122,7 +132,7 @@ server <- function(input, output, session) {
     }
 
     if (nrow(df) == 0)
-      return(p("No issues match the current filters.", class = "text-muted"))
+      return(div(class = "empty-state", p("No issues match the current filters.")))
 
     p_count <- p(
       paste(nrow(df), "issues found"),
