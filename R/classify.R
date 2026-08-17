@@ -1,6 +1,6 @@
 classify_issue <- function(title, body, labels,
                            repo_description = "", repo_topics = "",
-                           user_skills = "") {
+                           user_skills = "", created_at = "") {
 
   repo_context <- if (nchar(repo_description) > 0 || nchar(repo_topics) > 0) {
     paste0(
@@ -13,9 +13,23 @@ classify_issue <- function(title, body, labels,
     ""
   }
 
-  # lets the model calibrate against what the user actually knows
   skill_context <- if (nchar(user_skills) > 0) {
     paste0("The contributor is comfortable with: ", user_skills, "\n")
+  } else {
+    ""
+  }
+
+  age_context <- if (nchar(created_at) > 0) {
+    opened <- tryCatch(
+      as.Date(substr(created_at, 1, 10)),
+      error = function(e) NULL
+    )
+    if (!is.null(opened)) {
+      days_old <- as.integer(Sys.Date() - opened)
+      paste0("Issue opened: ", days_old, " days ago\n")
+    } else {
+      ""
+    }
   } else {
     ""
   }
@@ -30,12 +44,15 @@ classify_issue <- function(title, body, labels,
     "Evaluate this GitHub R package issue for a first-time open source contributor.\n\n",
     repo_context,
     skill_context,
+    age_context,
     "Score 1-5 using this rubric:\n",
-    "5 = Ideal: typo, simple doc fix, clearly scoped with explicit maintainer guidance, or marked good-first-issue\n",
-    "4 = Good: well-defined task, requires only basic R knowledge, no package internals\n",
-    "3 = Moderate: needs some familiarity with the package but not its internals\n",
+    "5 = Ideal: explicitly labelled 'good first issue', typo fix, or simple doc change with clear scope\n",
+    "4 = Good: well-defined task, only basic R knowledge required, no package internals\n",
+    "3 = Moderate: needs some package familiarity but not internals\n",
     "2 = Hard: requires domain expertise, package internals, or significant context\n",
     "1 = Not suitable: complex bug, research-level, or requires deep expertise\n\n",
+    "Important: if the issue is labelled 'good first issue' it should score at least 4.\n",
+    "Important: if the issue is over 365 days old with no comments, consider scoring lower.\n\n",
     "Title: ", title, "\n",
     "Labels: ", if (nchar(labels) > 0) labels else "none", "\n",
     body_section,
@@ -51,7 +68,7 @@ classify_issue <- function(title, body, labels,
       `Content-Type` = "application/json"
     ) |>
     httr2::req_body_json(list(
-      model       = "llama-3.3-70b-versatile",
+      model       = "qwen/qwen3.6-27b",
       messages    = list(list(role = "user", content = prompt)),
       max_tokens  = 120,
       temperature = 0
@@ -100,7 +117,8 @@ classify_issues <- function(df, max_classify = 10, skills = NULL, progress_cb = 
         row$labels,
         row$repo_description,
         row$repo_topics,
-        user_skills
+        user_skills,
+        row$created_at
       )
     }, error = function(e) {
       message("classify failed: ", row$repo, " #", row$number, " — ", conditionMessage(e))

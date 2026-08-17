@@ -15,8 +15,8 @@ R_REPOS <- list(
                      "r-lib/pkgdown", "r-lib/usethis"),
   spatial        = c("r-spatial/sf", "rspatial/terra",
                      "rstudio/leaflet", "r-spatial/stars"),
-  bioinformatics = c("Bioconductor/BiocParallel", "Bioconductor/GenomicRanges",
-                     "Bioconductor/SummarizedExperiment")
+  bioinformatics = c("ropensci/taxize", "ropensci/rentrez",
+                     "ropensci/rgbif", "Bioconductor/BiocManager")
 )
 
 # fetch repo description and topics
@@ -78,6 +78,7 @@ fetch_repo_issues <- function(owner, repo, n = 10, since_days = 365) {
         body        = substr(body_text, 1, 200),
         body_length = nchar(body_text),
         assigned    = !is.null(x$assignee),
+        created_at  = x$created_at,
         stringsAsFactors = FALSE
       )
     }))

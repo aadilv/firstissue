@@ -22,7 +22,11 @@ score_dots <- function(n, max_n = 5) {
   dots <- lapply(seq_len(max_n), function(i) {
     tags$span(class = if (!is.na(n) && i <= n) "dot dot-filled" else "dot dot-empty")
   })
-  tags$span(class = "score-dots", dots)
+  tags$span(
+    class = "score-dots",
+    title = if (!is.na(n)) paste0("Beginner friendliness: ", n, "/", max_n) else "Not scored",
+    dots
+  )
 }
 
 ui <- page_fluid(
