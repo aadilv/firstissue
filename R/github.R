@@ -1,25 +1,5 @@
 # R/github.R
 
-R_REPOS <- list(
-  docs           = c("tidyverse/dplyr", "tidyverse/ggplot2", "r-lib/roxygen2",
-                     "r-lib/cli", "tidyverse/tibble", "r-lib/usethis"),
-  viz            = c("tidyverse/ggplot2", "wilkelab/ggridges", "thomasp85/patchwork",
-                     "rstudio/gt", "tidyverse/ggplot2"),
-  tidyverse      = c("tidyverse/dplyr", "tidyverse/tidyr", "tidyverse/purrr",
-                     "tidyverse/forcats", "tidyverse/stringr"),
-  shiny          = c("rstudio/shiny", "rstudio/bslib",
-                     "rstudio/htmltools", "rstudio/shinyWidgets"),
-  modelling      = c("tidymodels/parsnip", "tidymodels/recipes", "paul-buerkner/brms",
-                     "tidymodels/tune", "tidymodels/yardstick"),
-  testing        = c("r-lib/testthat", "r-lib/covr",
-                     "r-lib/pkgdown", "r-lib/usethis"),
-  spatial        = c("r-spatial/sf", "rspatial/terra",
-                     "rstudio/leaflet", "r-spatial/stars"),
-  bioinformatics = c("ropensci/taxize", "ropensci/rentrez",
-                     "ropensci/rgbif", "Bioconductor/BiocManager")
-)
-
-# fetch repo description and topics
 fetch_repo_meta <- function(owner, repo) {
   tryCatch({
     info <- gh(
@@ -89,7 +69,7 @@ fetch_repo_issues <- function(owner, repo, n = 10, since_days = 365) {
 }
 
 fetch_for_skills <- function(skills) {
-  repos <- unique(unlist(R_REPOS[skills], use.names = FALSE))
+  repos <- discover_repos(skills)
 
   results <- lapply(repos, function(r) {
     parts  <- strsplit(r, "/")[[1]]

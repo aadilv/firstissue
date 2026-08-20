@@ -82,7 +82,10 @@ classify_issue <- function(title, body, labels,
 
   raw    <- httr2::resp_body_json(resp)
   text   <- raw$choices[[1]]$message$content
+
+  text   <- gsub("<think>.*?</think>", "", text, perl = TRUE)
   text   <- gsub("```json|```", "", text, perl = TRUE)
+
   result <- jsonlite::fromJSON(trimws(text))
 
   score <- suppressWarnings(as.integer(round(result$score)))

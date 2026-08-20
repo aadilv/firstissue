@@ -12,6 +12,7 @@ source("R/github.R")
 source("R/heuristic.R")
 source("R/classify.R")
 source("R/theme.R")
+source("R/discover.R")
 
 SKILL_CHOICES <- c(
   "docs", "viz", "tidyverse", "shiny",
@@ -36,7 +37,6 @@ ui <- page_fluid(
   ),
   useShinyjs(),
 
-  # nav
   tags$nav(
     class = "navbar bg-white border-bottom px-4 mb-4",
     tags$span(class = "navbar-brand mb-0", "fiRstissue"),
@@ -98,15 +98,16 @@ server <- function(input, output, session) {
   observeEvent(input$find_btn, {
     req(input$skills)
 
-    shinyjs::disable("find_btn")               
-    on.exit(shinyjs::enable("find_btn"))       
+    shinyjs::disable("find_btn")
+    on.exit(shinyjs::enable("find_btn"))
 
-    withProgress(message = "Fetching and scoring issues...", value = 0.1, {
+    withProgress(message = "Discovering repos...", value = 0.05, {
       dat <- fetch_for_skills(input$skills)
+
+      setProgress(value = 0.4, message = "Scoring...")
       dat <- score_issues(dat)
 
       setProgress(value = 0.5, message = "Classifying... (0/?)")
-
       dat <- classify_issues(
         dat,
         skills      = input$skills,
